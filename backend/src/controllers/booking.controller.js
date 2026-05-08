@@ -4,9 +4,14 @@ const { sendBookingConfirmation, sendBookingCancellation } = require('../service
 const prisma = new PrismaClient();
 
 // Validate booking time rules (30-min increments, min 30 mins)
+// Convert PKT time string to UTC Date
+const pktToUtc = (timeStr) => {
+  const date = new Date(timeStr);
+  return new Date(date.getTime() - 5 * 60 * 60 * 1000);
+};
 const validateBookingTime = (startTime, endTime) => {
-  const start = new Date(startTime);
-  const end = new Date(endTime);
+  const start = pktToUtc(startTime);
+const end = pktToUtc(endTime);
   const now = new Date();
 
   if (start < now) return 'Booking start time cannot be in the past';
@@ -167,8 +172,8 @@ const createBooking = async (req, res) => {
         clientId,
         roomId,
         title,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
+        startTime: pktToUtc(startTime),
+endTime: pktToUtc(endTime),
         notes: notes || null,
         status: 'CONFIRMED',
       },
