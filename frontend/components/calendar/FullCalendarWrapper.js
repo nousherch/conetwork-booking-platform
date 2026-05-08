@@ -74,7 +74,7 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay',
         }}
-        timeZone="Asia/Karachi"
+        timeZone: "local"
         selectable={true}
         selectMirror={true}
         longPressDelay={0}
