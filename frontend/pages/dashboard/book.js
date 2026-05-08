@@ -30,6 +30,13 @@ function snapToHalf(date) {
   return d;
 }
 
+// Convert FullCalendar date (which is in Asia/Karachi display) to UTC-adjusted string for backend
+function toBackendTime(date) {
+  // FullCalendar with timeZone="Asia/Karachi" gives us local PKT dates
+  // We format them as-is since the backend stores whatever we send
+  return format(date, "yyyy-MM-dd'T'HH:mm");
+}
+
 export default function BookRoom() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -80,20 +87,16 @@ export default function BookRoom() {
     const draggedEnd = info.end && info.end > info.start
       ? snapToHalf(info.end)
       : addMinutes(snapped, 60);
-    // Adjust for Pakistan timezone (UTC+5)
-    const toLocal = (date) => {
-      const offset = 5 * 60 * 60 * 1000;
-      return new Date(date.getTime() - offset);
-    };
     setFormData({
       title: '',
       notes: '',
-      const toLocal = (date) => new Date(date.getTime() - 5 * 60 * 60 * 1000);
-startTime: format(toLocal(snapped), "yyyy-MM-dd'T'HH:mm"),
-endTime: format(toLocal(draggedEnd), "yyyy-MM-dd'T'HH:mm"),
+      startTime: toBackendTime(snapped),
+      endTime: toBackendTime(draggedEnd),
     });
     setStep(3);
-    info.view.calendar.unselect();
+    if (info.view && info.view.calendar) {
+      info.view.calendar.unselect();
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -206,7 +209,7 @@ endTime: format(toLocal(draggedEnd), "yyyy-MM-dd'T'HH:mm"),
             <p className="page-subtitle">Select a room, pick a time, and confirm in seconds</p>
           </div>
 
-          {/* Step indicator */}
+          {/* Step indicator - only 2 steps */}
           <div className="flex items-center gap-2 mb-6">
             {[
               { n: 1, label: 'Select Room' },
@@ -225,7 +228,7 @@ endTime: format(toLocal(draggedEnd), "yyyy-MM-dd'T'HH:mm"),
                   )}
                   <span className="hidden sm:inline">{s.label}</span>
                 </div>
-                {i < 2 && (
+                {i < 1 && (
                   <div className={`step-line w-6 h-0.5 rounded ${step > s.n ? 'bg-emerald-500' : 'bg-slate-200'}`} />
                 )}
               </div>
@@ -292,7 +295,7 @@ endTime: format(toLocal(draggedEnd), "yyyy-MM-dd'T'HH:mm"),
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedRoom.color }} />
                       <span className="font-semibold text-slate-800 text-sm">{selectedRoom.name}</span>
                     </div>
-                    <p className="text-xs text-slate-400">Click or drag a slot to book</p>
+                    <p className="text-xs text-slate-400">Tap or drag a slot to book</p>
                   </div>
                   <FullCalendarWrapper
                     events={events}
@@ -315,10 +318,10 @@ endTime: format(toLocal(draggedEnd), "yyyy-MM-dd'T'HH:mm"),
             </div>
           </div>
 
-          </div>
+        </div>
       </AppLayout>
 
-      {/* Modal rendered outside layout via Portal — always centered */}
+      {/* Booking modal */}
       {step === 3 && typeof window !== 'undefined' && createPortal(
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setStep(2); }}
