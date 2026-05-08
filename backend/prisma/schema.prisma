@@ -1,0 +1,108 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client   Client?
+  sessions Session[]
+
+  @@map("users")
+}
+
+model Client {
+  id          String        @id @default(cuid())
+  userId      String        @unique
+  companyName String?
+  phone       String?
+  status      ClientStatus  @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@map("clients")
+}
+
+model Room {
+  id          String     @id @default(cuid())
+  name        String
+  capacity    Int
+  equipment   String[]
+  description String?
+  status      RoomStatus @default(ACTIVE)
+  color       String     @default("#10b981")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  bookings Booking[]
+
+  @@map("rooms")
+}
+
+model Booking {
+  id           String        @id @default(cuid())
+  clientId     String
+  roomId       String
+  title        String
+  startTime    DateTime
+  endTime      DateTime
+  status       BookingStatus @default(CONFIRMED)
+  notes        String?
+  reminderSent Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("bookings")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RoomStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
