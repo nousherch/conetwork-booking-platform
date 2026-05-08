@@ -38,6 +38,8 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
         }}
         selectable={true}
         selectMirror={true}
+longPressDelay={0}
+selectLongPressDelay={0}
         editable={false}
         dayMaxEvents={true}
         weekends={true}
