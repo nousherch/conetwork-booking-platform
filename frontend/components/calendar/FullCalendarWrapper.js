@@ -103,7 +103,7 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           if (info.date < today) return;
           onDateSelect({
             start: info.date,
-            end: addMinutes(info.date, 60),
+            end: addMinutes(info.date, 30),
             view: info.view,
           });
         }}
