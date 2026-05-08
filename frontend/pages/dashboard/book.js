@@ -90,8 +90,8 @@ export default function BookRoom() {
     setFormData({
       title: '',
       notes: '',
-      startTime: toBackendTime(snapped),
-      endTime: toBackendTime(draggedEnd),
+      startTime: snapped.toISOString(),
+endTime: draggedEnd.toISOString(),
     });
     setStep(3);
     if (info.view && info.view.calendar) {
