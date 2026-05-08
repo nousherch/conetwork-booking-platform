@@ -44,7 +44,7 @@ function formatForInput(date) {
 
 // Convert local datetime to UTC for backend
 function formatForBackend(dateString) {
-  return new Date(dateString).toISOString();
+  return dateString;
 }
 
 export default function BookRoom() {
