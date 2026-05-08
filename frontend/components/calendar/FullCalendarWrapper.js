@@ -19,6 +19,12 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           ) !important;
           border: 1.5px solid #b91c1c !important;
         }
+.fc-timegrid-slots tr,
+.fc-timegrid-body,
+.fc-scroller-liquid-absolute {
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
         .fc-highlight {
           background: rgba(16, 185, 129, 0.15) !important;
           border: 2px dashed #10b981 !important;
@@ -39,6 +45,7 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
         selectable={true}
         selectMirror={true}
 longPressDelay={0}
+selectMinDistance={5}
 selectLongPressDelay={0}
         editable={false}
         dayMaxEvents={true}
