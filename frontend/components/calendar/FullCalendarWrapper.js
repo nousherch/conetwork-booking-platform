@@ -4,7 +4,12 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { addMinutes } from 'date-fns';
 
-export default function FullCalendarWrapper({ events, onDateSelect, onEventClick, onDatesSet }) {
+export default function FullCalendarWrapper({
+  events,
+  onDateSelect,
+  onEventClick,
+  onDatesSet,
+}) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -23,49 +28,19 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           ) !important;
           border: 1.5px solid #b91c1c !important;
         }
-        .fc-timegrid-slots tr,
-        .fc-timegrid-body,
-        .fc-scroller-liquid-absolute {
-          touch-action: none !important;
-          overscroll-behavior: none !important;
-        }
+
         .fc-highlight {
           background: rgba(16, 185, 129, 0.15) !important;
           border: 2px dashed #10b981 !important;
         }
-        .fc .fc-button-group .fc-button,
-        .fc .fc-today-button {
-          text-transform: capitalize !important;
-        }
-        .fc-timegrid-slot-label {
-          font-size: 13px !important;
-          font-weight: 600 !important;
-          color: #374151 !important;
-        }
-        .fc-event-title {
-          font-size: 13px !important;
-          font-weight: 600 !important;
-        }
-        .fc-event-time {
-          font-size: 12px !important;
-          font-weight: 500 !important;
-        }
-        .fc-col-header-cell {
-          font-size: 13px !important;
-          font-weight: 700 !important;
-          color: #111827 !important;
-        }
+
         .fc-day-past {
           background: #f9fafb !important;
           opacity: 0.5 !important;
           pointer-events: none !important;
         }
-        .fc-timegrid-col.fc-day-past {
-          background: #f9fafb !important;
-          opacity: 0.5 !important;
-          pointer-events: none !important;
-        }
       `}</style>
+
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
@@ -74,63 +49,68 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay',
         }}
-        timeZone: "local"
+
+        timeZone="local"
+
         selectable={true}
         selectMirror={true}
+        editable={false}
+
         longPressDelay={0}
         selectLongPressDelay={0}
         selectMinDistance={5}
-        editable={false}
-        dayMaxEvents={true}
-        weekends={true}
+
         events={events}
+
         validRange={{ start: today }}
-        selectAllow={(selectInfo) => {
-          return selectInfo.start >= today;
-        }}
+
         select={(info) => {
-          const isOverlapping = events.some((e) => {
-            if (e.extendedProps?.isOwnBooking === false) {
-              return new Date(info.start) < new Date(e.end) &&
-                     new Date(info.end) > new Date(e.start);
-            }
-            return false;
+          if (info.start < today) return;
+
+          onDateSelect({
+            start: info.start,
+            end: info.end,
+            view: info.view,
           });
-          if (isOverlapping) return;
-          onDateSelect(info);
         }}
+
         dateClick={(info) => {
           if (info.date < today) return;
+
           onDateSelect({
             start: info.date,
             end: addMinutes(info.date, 30),
             view: info.view,
           });
         }}
+
         eventClick={(info) => {
           if (!info.event.extendedProps?.isOwnBooking) return;
           onEventClick(info);
         }}
+
         datesSet={onDatesSet}
+
         slotMinTime="00:00:00"
         slotMaxTime="24:00:00"
         slotDuration="00:30:00"
         snapDuration="00:30:00"
+
         height="auto"
         nowIndicator={true}
         allDaySlot={false}
+
         eventTimeFormat={{
           hour: 'numeric',
           minute: '2-digit',
           meridiem: 'short',
         }}
+
         slotLabelFormat={{
           hour: 'numeric',
           minute: '2-digit',
           meridiem: 'short',
         }}
-        eventMinHeight={30}
-        eventDisplay="block"
       />
     </>
   );
