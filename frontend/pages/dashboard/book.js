@@ -80,11 +80,17 @@ export default function BookRoom() {
     const draggedEnd = info.end && info.end > info.start
       ? snapToHalf(info.end)
       : addMinutes(snapped, 60);
+    // Adjust for Pakistan timezone (UTC+5)
+    const toLocal = (date) => {
+      const offset = 5 * 60 * 60 * 1000;
+      return new Date(date.getTime() - offset);
+    };
     setFormData({
       title: '',
       notes: '',
-      startTime: format(snapped, "yyyy-MM-dd'T'HH:mm"),
-      endTime: format(draggedEnd, "yyyy-MM-dd'T'HH:mm"),
+      const toLocal = (date) => new Date(date.getTime() - 5 * 60 * 60 * 1000);
+startTime: format(toLocal(snapped), "yyyy-MM-dd'T'HH:mm"),
+endTime: format(toLocal(draggedEnd), "yyyy-MM-dd'T'HH:mm"),
     });
     setStep(3);
     info.view.calendar.unselect();
@@ -205,7 +211,6 @@ export default function BookRoom() {
             {[
               { n: 1, label: 'Select Room' },
               { n: 2, label: 'Pick Time' },
-              { n: 3, label: 'Confirm' },
             ].map((s, i) => (
               <div key={s.n} className="flex items-center gap-2">
                 <div className={`step-dot flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${

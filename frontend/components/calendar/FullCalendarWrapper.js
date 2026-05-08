@@ -2,6 +2,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { addMinutes } from 'date-fns';
 
 export default function FullCalendarWrapper({ events, onDateSelect, onEventClick, onDatesSet }) {
   const today = new Date();
@@ -36,13 +37,11 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
         .fc .fc-today-button {
           text-transform: capitalize !important;
         }
-        /* Bigger, bolder time labels */
         .fc-timegrid-slot-label {
           font-size: 13px !important;
           font-weight: 600 !important;
           color: #374151 !important;
         }
-        /* Bigger event text */
         .fc-event-title {
           font-size: 13px !important;
           font-weight: 600 !important;
@@ -51,13 +50,11 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           font-size: 12px !important;
           font-weight: 500 !important;
         }
-        /* Bigger column headers (day names) */
         .fc-col-header-cell {
           font-size: 13px !important;
           font-weight: 700 !important;
           color: #111827 !important;
         }
-        /* Gray out past days */
         .fc-day-past {
           background: #f9fafb !important;
           opacity: 0.5 !important;
@@ -101,6 +98,14 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           });
           if (isOverlapping) return;
           onDateSelect(info);
+        }}
+        dateClick={(info) => {
+          if (info.date < today) return;
+          onDateSelect({
+            start: info.date,
+            end: addMinutes(info.date, 60),
+            view: info.view,
+          });
         }}
         eventClick={(info) => {
           if (!info.event.extendedProps?.isOwnBooking) return;
