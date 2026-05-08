@@ -4,6 +4,9 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
 export default function FullCalendarWrapper({ events, onDateSelect, onEventClick, onDatesSet }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   return (
     <>
       <style>{`
@@ -19,12 +22,12 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           ) !important;
           border: 1.5px solid #b91c1c !important;
         }
-.fc-timegrid-slots tr,
-.fc-timegrid-body,
-.fc-scroller-liquid-absolute {
-  touch-action: none !important;
-  overscroll-behavior: none !important;
-}
+        .fc-timegrid-slots tr,
+        .fc-timegrid-body,
+        .fc-scroller-liquid-absolute {
+          touch-action: none !important;
+          overscroll-behavior: none !important;
+        }
         .fc-highlight {
           background: rgba(16, 185, 129, 0.15) !important;
           border: 2px dashed #10b981 !important;
@@ -32,6 +35,38 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
         .fc .fc-button-group .fc-button,
         .fc .fc-today-button {
           text-transform: capitalize !important;
+        }
+        /* Bigger, bolder time labels */
+        .fc-timegrid-slot-label {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          color: #374151 !important;
+        }
+        /* Bigger event text */
+        .fc-event-title {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+        }
+        .fc-event-time {
+          font-size: 12px !important;
+          font-weight: 500 !important;
+        }
+        /* Bigger column headers (day names) */
+        .fc-col-header-cell {
+          font-size: 13px !important;
+          font-weight: 700 !important;
+          color: #111827 !important;
+        }
+        /* Gray out past days */
+        .fc-day-past {
+          background: #f9fafb !important;
+          opacity: 0.5 !important;
+          pointer-events: none !important;
+        }
+        .fc-timegrid-col.fc-day-past {
+          background: #f9fafb !important;
+          opacity: 0.5 !important;
+          pointer-events: none !important;
         }
       `}</style>
       <FullCalendar
@@ -42,15 +77,20 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay',
         }}
+        timeZone="Asia/Karachi"
         selectable={true}
         selectMirror={true}
-longPressDelay={0}
-selectMinDistance={5}
-selectLongPressDelay={0}
+        longPressDelay={0}
+        selectLongPressDelay={0}
+        selectMinDistance={5}
         editable={false}
         dayMaxEvents={true}
         weekends={true}
         events={events}
+        validRange={{ start: today }}
+        selectAllow={(selectInfo) => {
+          return selectInfo.start >= today;
+        }}
         select={(info) => {
           const isOverlapping = events.some((e) => {
             if (e.extendedProps?.isOwnBooking === false) {
