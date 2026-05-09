@@ -10,13 +10,18 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
   today.setHours(0, 0, 0, 0);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
+    setMounted(true);
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  // Don't render until we know the screen size so initialView is correct from the start
+  if (!mounted) return null;
 
   return (
     <>
@@ -79,17 +84,25 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
             font-size: 12px !important;
             padding: 4px 8px !important;
           }
-          .fc-timegrid-slot-label {
+          /* Fix time label column width so it doesn't get cut off */
+          .fc .fc-timegrid-axis,
+          .fc .fc-timegrid-slot-label {
+            width: 70px !important;
+            min-width: 70px !important;
             font-size: 11px !important;
+            white-space: nowrap !important;
+          }
+          /* Fix col header (day name) from being cut off */
+          .fc .fc-col-header-cell {
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            padding: 4px 2px !important;
           }
           .fc-event-title {
             font-size: 11px !important;
           }
           .fc-event-time {
             font-size: 10px !important;
-          }
-          .fc-col-header-cell {
-            font-size: 11px !important;
           }
         }
       `}</style>
