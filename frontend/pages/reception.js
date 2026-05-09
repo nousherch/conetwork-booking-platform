@@ -358,7 +358,7 @@ export default function ReceptionBoard() {
               </div>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto justify-center">
               {rooms.map((room, i) => (
                 <RoomTimeline
                   key={room.id}
