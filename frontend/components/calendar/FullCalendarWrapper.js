@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -7,6 +8,15 @@ import { addMinutes } from 'date-fns';
 export default function FullCalendarWrapper({ events, onDateSelect, onEventClick, onDatesSet }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   return (
     <>
@@ -55,12 +65,43 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           font-weight: 700 !important;
           color: #111827 !important;
         }
+
+        /* ── Mobile overrides ── */
+        @media (max-width: 767px) {
+          .fc .fc-toolbar {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+          }
+          .fc .fc-toolbar-title {
+            font-size: 14px !important;
+          }
+          .fc .fc-button {
+            font-size: 12px !important;
+            padding: 4px 8px !important;
+          }
+          .fc-timegrid-slot-label {
+            font-size: 11px !important;
+          }
+          .fc-event-title {
+            font-size: 11px !important;
+          }
+          .fc-event-time {
+            font-size: 10px !important;
+          }
+          .fc-col-header-cell {
+            font-size: 11px !important;
+          }
+        }
       `}</style>
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="timeGridWeek"
+        initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
         initialDate={new Date()}
-        headerToolbar={{
+        headerToolbar={isMobile ? {
+          left: 'prev,next',
+          center: 'title',
+          right: 'today',
+        } : {
           left: 'prev,next today',
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay',

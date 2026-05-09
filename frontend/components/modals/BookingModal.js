@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { format, addMinutes, startOfHour, isBefore } from 'date-fns';
+import { format, addMinutes, isBefore } from 'date-fns';
 import { bookingsApi, clientsApi } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 
 const DURATIONS = [
-  { label: '30 minutes', value: 30 },
-  { label: '1 hour', value: 60 },
-  { label: '1h 30min', value: 90 },
-  { label: '2 hours', value: 120 },
-  { label: '2h 30min', value: 150 },
-  { label: '3 hours', value: 180 },
-  { label: '4 hours', value: 240 },
+  { label: '30 min', value: 30 },
+  { label: '1 hr', value: 60 },
+  { label: '1h 30m', value: 90 },
+  { label: '2 hr', value: 120 },
+  { label: '2h 30m', value: 150 },
+  { label: '3 hr', value: 180 },
+  { label: '4 hr', value: 240 },
 ];
 
 function snapToHalfHour(date) {
@@ -35,7 +35,7 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
   const [clients, setClients] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [mode, setMode] = useState('create'); // 'create' | 'view'
+  const [mode, setMode] = useState('create');
 
   useEffect(() => {
     if (existingBooking) {
@@ -80,8 +80,7 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
       toast.success('Booking confirmed!');
       onSuccess();
     } catch (err) {
-      const msg = err.response?.data?.error || 'Failed to create booking';
-      toast.error(msg);
+      toast.error(err.response?.data?.error || 'Failed to create booking');
     } finally {
       setSubmitting(false);
     }
@@ -106,18 +105,25 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-panel max-w-lg w-full">
+      {/* FIX: full-width on mobile, max-w-lg on desktop; max-height + scroll so modal never clips off screen */}
+      <div
+        className="modal-panel w-full"
+        style={{ maxWidth: '32rem', maxHeight: '92vh', overflowY: 'auto' }}
+      >
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <div>
-            <h2 className="font-display font-bold text-slate-900 text-lg">
+            <h2 className="font-display font-bold text-slate-900 text-base sm:text-lg">
               {isView ? 'Booking Details' : 'New Booking'}
             </h2>
             {isView && existingBooking?.roomName && (
               <p className="text-sm text-slate-400 mt-0.5">{existingBooking.roomName}</p>
             )}
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
+          >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -125,7 +131,8 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+
           {/* Client select (admin only, create mode) */}
           {isAdmin && !isView && (
             <div>
@@ -146,7 +153,7 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
             </div>
           )}
 
-          {/* View mode: show client name */}
+          {/* View mode: client name */}
           {isView && existingBooking?.clientName && (
             <div className="bg-slate-50 rounded-lg p-3 flex items-center gap-2">
               <div className="w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
@@ -184,7 +191,8 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* FIX: stack on mobile (grid-cols-1), side-by-side on sm+ (sm:grid-cols-2) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="form-label">Start Time *</label>
               <input
@@ -193,7 +201,7 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
                 onChange={(e) => setForm({ ...form, startTime: e.target.value })}
                 required
                 readOnly={isView}
-                className={`form-input ${isView ? 'bg-slate-50 cursor-default' : ''}`}
+                className={`form-input text-sm ${isView ? 'bg-slate-50 cursor-default' : ''}`}
               />
             </div>
             <div>
@@ -204,12 +212,12 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
                 required
                 readOnly={isView}
-                className={`form-input ${isView ? 'bg-slate-50 cursor-default' : ''}`}
+                className={`form-input text-sm ${isView ? 'bg-slate-50 cursor-default' : ''}`}
               />
             </div>
           </div>
 
-          {/* Quick duration picker (create mode only) */}
+          {/* Quick duration picker */}
           {!isView && (
             <div>
               <label className="form-label text-slate-400 text-xs">Quick duration</label>
@@ -233,7 +241,9 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
           )}
 
           <div>
-            <label className="form-label">Notes <span className="text-slate-400 font-normal">(optional)</span></label>
+            <label className="form-label">
+              Notes <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -245,7 +255,7 @@ export default function BookingModal({ onClose, onSuccess, initialSlot, existing
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-2">
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
             <button type="button" onClick={onClose} className="btn-secondary">
               {isView ? 'Close' : 'Cancel'}
             </button>
