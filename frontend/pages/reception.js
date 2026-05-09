@@ -358,14 +358,15 @@ export default function ReceptionBoard() {
               </div>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto justify-center">
+            <div className="flex flex-wrap justify-center gap-5 max-w-6xl mx-auto">
               {rooms.map((room, i) => (
-                <RoomTimeline
-                  key={room.id}
-                  room={room}
-                  bookings={bookingsMap[room.id] || []}
-                  index={i}
-                />
+                <div key={room.id} style={{ width: '380px', minWidth: '320px', flex: '0 1 380px' }}>
+                  <RoomTimeline
+                    room={room}
+                    bookings={bookingsMap[room.id] || []}
+                    index={i}
+                  />
+                </div>
               ))}
             </div>
           )}
