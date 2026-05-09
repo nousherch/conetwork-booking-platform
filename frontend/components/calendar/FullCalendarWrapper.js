@@ -1,8 +1,8 @@
+import { useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { addMinutes } from 'date-fns';
 
 export default function FullCalendarWrapper({
   events,
@@ -10,8 +10,12 @@ export default function FullCalendarWrapper({
   onEventClick,
   onDatesSet,
 }) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Memoize midnight today so it doesn't trigger endless re-renders
+  const todayMidnight = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   return (
     <>
@@ -37,7 +41,6 @@ export default function FullCalendarWrapper({
         .fc-day-past {
           background: #f9fafb !important;
           opacity: 0.5 !important;
-          pointer-events: none !important;
         }
       `}</style>
 
@@ -49,39 +52,58 @@ export default function FullCalendarWrapper({
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay',
         }}
-
         timeZone="local"
-
+        
+        // --- SELECTION LOGIC ---
         selectable={true}
         selectMirror={true}
         editable={false}
-
+        
+        // Mobile tweaks
         longPressDelay={0}
         selectLongPressDelay={0}
-        selectMinDistance={5}
+        selectMinDistance={2}
 
         events={events}
 
-        validRange={{ start: today }}
+        // --- TIME GRID SETUP ---
+        nowIndicator={true}
+        allDaySlot={false}
+        slotMinTime="00:00:00"
+        slotMaxTime="24:00:00"
+        slotDuration="00:30:00"
+        snapDuration="00:30:00"
+        eventDisplay="block"
 
+        eventTimeFormat={{
+          hour: 'numeric',
+          minute: '2-digit',
+          meridiem: 'short',
+        }}
+        slotLabelFormat={{
+          hour: 'numeric',
+          minute: '2-digit',
+          meridiem: 'short',
+        }}
+
+        // ✅ FIXED: Prevent selecting over existing events automatically
+        selectOverlap={false}
+
+        // ✅ FIXED: Prevent selecting past times without hiding columns visually
+        selectAllow={(selectInfo) => {
+          return selectInfo.start >= todayMidnight;
+        }}
+
+        // ✅ FIXED: Only use select, NOT dateClick, to avoid double-firing
         select={(info) => {
-          if (info.start < today) return;
-
           onDateSelect({
             start: info.start,
             end: info.end,
             view: info.view,
           });
-        }}
-
-        dateClick={(info) => {
-          if (info.date < today) return;
-
-          onDateSelect({
-            start: info.date,
-            end: addMinutes(info.date, 30),
-            view: info.view,
-          });
+          
+          // Optional: clear the highlight once they make a selection
+          // info.view.calendar.unselect(); 
         }}
 
         eventClick={(info) => {
@@ -90,27 +112,6 @@ export default function FullCalendarWrapper({
         }}
 
         datesSet={onDatesSet}
-
-        slotMinTime="00:00:00"
-        slotMaxTime="24:00:00"
-        slotDuration="00:30:00"
-        snapDuration="00:30:00"
-
-        height="auto"
-        nowIndicator={true}
-        allDaySlot={false}
-
-        eventTimeFormat={{
-          hour: 'numeric',
-          minute: '2-digit',
-          meridiem: 'short',
-        }}
-
-        slotLabelFormat={{
-          hour: 'numeric',
-          minute: '2-digit',
-          meridiem: 'short',
-        }}
       />
     </>
   );
