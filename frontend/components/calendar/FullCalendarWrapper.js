@@ -55,20 +55,11 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
           font-weight: 700 !important;
           color: #111827 !important;
         }
-        .fc-day-past {
-          background: #f9fafb !important;
-          opacity: 0.5 !important;
-          pointer-events: none !important;
-        }
-        .fc-timegrid-col.fc-day-past {
-          background: #f9fafb !important;
-          opacity: 0.5 !important;
-          pointer-events: none !important;
-        }
       `}</style>
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
+        initialDate={new Date()}
         headerToolbar={{
           left: 'prev,next today',
           center: 'title',
@@ -84,7 +75,13 @@ export default function FullCalendarWrapper({ events, onDateSelect, onEventClick
         dayMaxEvents={true}
         weekends={true}
         events={events}
-        validRange={{ start: today }}
+        validRange={(nowDate) => {
+          const start = new Date();
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(start);
+          end.setDate(end.getDate() + 60);
+          return { start, end };
+        }}
         selectAllow={(selectInfo) => selectInfo.start >= today}
         select={(info) => {
           const isOverlapping = events.some((e) => {
