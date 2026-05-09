@@ -43,7 +43,6 @@ function RoomTimeline({ room, bookings, index }) {
     .filter((b) => new Date(b.startTime) > now)
     .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))[0];
 
-  // Progress bar for current booking
   let progressPct = 0;
   if (currentBooking) {
     const total = new Date(currentBooking.endTime) - new Date(currentBooking.startTime);
@@ -183,6 +182,7 @@ export default function ReceptionBoard() {
   const [bookingsMap, setBookingsMap] = useState({});
   const [lastUpdated, setLastUpdated] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState(null);
   const intervalRef = useRef(null);
@@ -197,23 +197,44 @@ export default function ReceptionBoard() {
 
   const fetchData = async () => {
     try {
+      setError(null);
+
+      // 1. Login to get token
       const loginRes = await axios.post(`${API_URL}/api/auth/login`, {
         email: 'admin@conetwork.pk',
         password: 'admin123',
       });
       const token = loginRes.data.token;
+
+      // 2. Fetch rooms (no status filter — let backend return all rooms)
       const [roomsRes, bookingsRes] = await Promise.all([
         axios.get(`${API_URL}/api/rooms`, {
           headers: { Authorization: `Bearer ${token}` },
-          params: { status: 'ACTIVE' },
+          // FIX: Removed `params: { status: 'ACTIVE' }` — this was filtering
+          // out rooms whose DB status didn't exactly match 'ACTIVE' (e.g. 'active').
+          // Remove this filter so all rooms appear on the board.
         }),
         axios.get(`${API_URL}/api/bookings/today`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
-      setRooms(roomsRes.data.rooms);
+
+      // 3. FIX: Handle both response shapes:
+      //    { rooms: [...] }  →  roomsRes.data.rooms
+      //    [...]             →  roomsRes.data  (plain array)
+      const fetchedRooms = Array.isArray(roomsRes.data)
+        ? roomsRes.data
+        : roomsRes.data.rooms ?? [];
+
+      setRooms(fetchedRooms);
+
+      // 4. Build bookings map keyed by roomId
       const map = {};
-      for (const b of bookingsRes.data.bookings) {
+      const bookings = Array.isArray(bookingsRes.data)
+        ? bookingsRes.data
+        : bookingsRes.data.bookings ?? [];
+
+      for (const b of bookings) {
         if (!map[b.roomId]) map[b.roomId] = [];
         map[b.roomId].push(b);
       }
@@ -221,6 +242,7 @@ export default function ReceptionBoard() {
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Board fetch error:', err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -228,7 +250,7 @@ export default function ReceptionBoard() {
 
   useEffect(() => {
     fetchData();
-    intervalRef.current = setInterval(fetchData, 300000);
+    intervalRef.current = setInterval(fetchData, 300000); // refresh every 5 min
     return () => clearInterval(intervalRef.current);
   }, []);
 
@@ -272,11 +294,13 @@ export default function ReceptionBoard() {
 
       <div className="min-h-screen flex flex-col" style={{ background: '#f1f5f9' }}>
         {/* Header */}
-        <div className="header-anim sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
+        <div
+          className="header-anim sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
           style={{
             background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-          }}>
+          }}
+        >
           <div className="flex items-center gap-3">
             <img
               src="/logo.png"
@@ -300,21 +324,41 @@ export default function ReceptionBoard() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex items-center justify-center p-6">
+        <div className="flex-1 p-6">
           {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6">
-                  <div className="skeleton h-6 w-40 rounded mb-3" />
-                  <div className="skeleton h-4 w-full rounded mb-2" />
-                  <div className="skeleton h-4 w-3/4 rounded" />
-                </div>
-              ))}
+            <div className="flex items-center justify-center h-full">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-6xl">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 animate-pulse">
+                    <div className="h-6 w-40 bg-slate-200 rounded mb-3" />
+                    <div className="h-4 w-full bg-slate-100 rounded mb-2" />
+                    <div className="h-4 w-3/4 bg-slate-100 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center py-20">
+                <p className="text-red-500 font-semibold mb-2">Failed to load room data</p>
+                <p className="text-slate-400 text-sm">{error}</p>
+                <button
+                  onClick={fetchData}
+                  className="mt-4 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-700 transition"
+                >
+                  Retry
+                </button>
+              </div>
             </div>
           ) : rooms.length === 0 ? (
-            <div className="text-center py-20 text-slate-400">No meeting rooms configured</div>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center py-20 text-slate-400">
+                <p className="text-lg font-semibold mb-1">No meeting rooms configured</p>
+                <p className="text-sm">Add rooms in the admin panel to see them here.</p>
+              </div>
+            </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
               {rooms.map((room, i) => (
                 <RoomTimeline
                   key={room.id}
@@ -326,9 +370,11 @@ export default function ReceptionBoard() {
             </div>
           )}
 
-          <p className="text-center text-xs text-slate-400 mt-6">
-            {mounted && lastUpdated ? `Last updated ${format(lastUpdated, 'h:mm:ss a')}` : ''}
-          </p>
+          {!loading && (
+            <p className="text-center text-xs text-slate-400 mt-6">
+              {mounted && lastUpdated ? `Last updated ${format(lastUpdated, 'h:mm:ss a')}` : ''}
+            </p>
+          )}
         </div>
       </div>
     </>
