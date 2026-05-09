@@ -1,21 +1,12 @@
-import { useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { addMinutes } from 'date-fns';
 
-export default function FullCalendarWrapper({
-  events,
-  onDateSelect,
-  onEventClick,
-  onDatesSet,
-}) {
-  // Memoize midnight today so it doesn't trigger endless re-renders
-  const todayMidnight = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
+export default function FullCalendarWrapper({ events, onDateSelect, onEventClick, onDatesSet }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   return (
     <>
@@ -32,18 +23,49 @@ export default function FullCalendarWrapper({
           ) !important;
           border: 1.5px solid #b91c1c !important;
         }
-
+        .fc-timegrid-slots tr,
+        .fc-timegrid-body,
+        .fc-scroller-liquid-absolute {
+          touch-action: none !important;
+          overscroll-behavior: none !important;
+        }
         .fc-highlight {
           background: rgba(16, 185, 129, 0.15) !important;
           border: 2px dashed #10b981 !important;
         }
-
+        .fc .fc-button-group .fc-button,
+        .fc .fc-today-button {
+          text-transform: capitalize !important;
+        }
+        .fc-timegrid-slot-label {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          color: #374151 !important;
+        }
+        .fc-event-title {
+          font-size: 13px !important;
+          font-weight: 600 !important;
+        }
+        .fc-event-time {
+          font-size: 12px !important;
+          font-weight: 500 !important;
+        }
+        .fc-col-header-cell {
+          font-size: 13px !important;
+          font-weight: 700 !important;
+          color: #111827 !important;
+        }
         .fc-day-past {
           background: #f9fafb !important;
           opacity: 0.5 !important;
+          pointer-events: none !important;
+        }
+        .fc-timegrid-col.fc-day-past {
+          background: #f9fafb !important;
+          opacity: 0.5 !important;
+          pointer-events: none !important;
         }
       `}</style>
-
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
@@ -53,28 +75,48 @@ export default function FullCalendarWrapper({
           right: 'dayGridMonth,timeGridWeek,timeGridDay',
         }}
         timeZone="local"
-        
-        // --- SELECTION LOGIC ---
         selectable={true}
         selectMirror={true}
-        editable={false}
-        
-        // Mobile tweaks
         longPressDelay={0}
         selectLongPressDelay={0}
-        selectMinDistance={2}
-
+        selectMinDistance={5}
+        editable={false}
+        dayMaxEvents={true}
+        weekends={true}
         events={events}
-
-        // --- TIME GRID SETUP ---
-        nowIndicator={true}
-        allDaySlot={false}
+        validRange={{ start: today }}
+        selectAllow={(selectInfo) => selectInfo.start >= today}
+        select={(info) => {
+          const isOverlapping = events.some((e) => {
+            if (e.extendedProps?.isOwnBooking === false) {
+              return new Date(info.start) < new Date(e.end) &&
+                     new Date(info.end) > new Date(e.start);
+            }
+            return false;
+          });
+          if (isOverlapping) return;
+          onDateSelect(info);
+        }}
+        dateClick={(info) => {
+          if (info.date < today) return;
+          onDateSelect({
+            start: info.date,
+            end: addMinutes(info.date, 30),
+            view: info.view,
+          });
+        }}
+        eventClick={(info) => {
+          if (!info.event.extendedProps?.isOwnBooking) return;
+          onEventClick(info);
+        }}
+        datesSet={onDatesSet}
         slotMinTime="00:00:00"
         slotMaxTime="24:00:00"
         slotDuration="00:30:00"
         snapDuration="00:30:00"
-        eventDisplay="block"
-
+        height="auto"
+        nowIndicator={true}
+        allDaySlot={false}
         eventTimeFormat={{
           hour: 'numeric',
           minute: '2-digit',
@@ -85,33 +127,8 @@ export default function FullCalendarWrapper({
           minute: '2-digit',
           meridiem: 'short',
         }}
-
-        // ✅ FIXED: Prevent selecting over existing events automatically
-        selectOverlap={false}
-
-        // ✅ FIXED: Prevent selecting past times without hiding columns visually
-        selectAllow={(selectInfo) => {
-          return selectInfo.start >= todayMidnight;
-        }}
-
-        // ✅ FIXED: Only use select, NOT dateClick, to avoid double-firing
-        select={(info) => {
-          onDateSelect({
-            start: info.start,
-            end: info.end,
-            view: info.view,
-          });
-          
-          // Optional: clear the highlight once they make a selection
-          // info.view.calendar.unselect(); 
-        }}
-
-        eventClick={(info) => {
-          if (!info.event.extendedProps?.isOwnBooking) return;
-          onEventClick(info);
-        }}
-
-        datesSet={onDatesSet}
+        eventMinHeight={30}
+        eventDisplay="block"
       />
     </>
   );
