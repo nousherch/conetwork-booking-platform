@@ -202,7 +202,7 @@ export default function ReceptionBoard() {
       // 1. Login to get token
       const loginRes = await axios.post(`${API_URL}/api/auth/login`, {
         email: 'admin@conetwork.pk',
-        password: 'admin123',
+        password: 'Conetwork@123',
       });
       const token = loginRes.data.token;
 
