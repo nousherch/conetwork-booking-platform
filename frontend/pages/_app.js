@@ -2,6 +2,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import Head from 'next/head';
 import '../styles/globals.css';
+import { Analytics } from "@vercel/analytics/next";
 
 export default function App({ Component, pageProps }) {
   return (
@@ -12,6 +13,7 @@ export default function App({ Component, pageProps }) {
         <meta name="theme-color" content="#0f172a" />
       </Head>
       <Component {...pageProps} />
+      <Analytics />
       <Toaster
         position="top-right"
         toastOptions={{
