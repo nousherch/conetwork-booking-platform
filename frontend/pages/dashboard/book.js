@@ -246,7 +246,6 @@ export default function BookRoom() {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g. Weekly Team Standup"
                   required
-                  autoFocus
                   className="w-full px-4 py-3 rounded-xl text-slate-800 border border-slate-200 focus:outline-none focus:border-emerald-400"
                 />
               </div>
