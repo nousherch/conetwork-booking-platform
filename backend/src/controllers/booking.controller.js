@@ -301,11 +301,15 @@ const getCalendarBookings = async (req, res) => {
 
     if (!start || !end) return res.status(400).json({ error: 'Start and end dates required' });
 
-    const where = {
-      status: 'CONFIRMED',
-      startTime: { gte: new Date(start) },
-      endTime: { lte: new Date(end) },
-    };
+   const where = {
+  status: 'CONFIRMED',
+  startTime: { gte: new Date(start) },
+  endTime: { lte: new Date(end) },
+  AND: [
+    { startTime: { gte: new Date(start) } },
+    { startTime: { lt: new Date(end) } },
+  ],
+};
 
     // IMPORTANT: fetch ALL bookings for the room (not just this client's)
     // so other clients' slots show as red/blocked on the calendar
@@ -359,10 +363,14 @@ const getCalendarBookings = async (req, res) => {
 
 const getTodaysBookings = async (req, res) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Use PKT (UTC+5) midnight
+    const now = new Date();
+    const pktOffset = 5 * 60 * 60 * 1000;
+    const pktNow = new Date(now.getTime() + pktOffset);
+    const todayPKT = new Date(pktNow);
+    todayPKT.setUTCHours(0, 0, 0, 0);
+    const today = new Date(todayPKT.getTime() - pktOffset);
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
     const where = {
       status: 'CONFIRMED',
