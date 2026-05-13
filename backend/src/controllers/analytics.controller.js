@@ -6,10 +6,12 @@ const prisma = new PrismaClient();
 const getDashboardStats = async (req, res) => {
   try {
     const now = new Date();
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-    const endOfToday = new Date(now);
-    endOfToday.setHours(23, 59, 59, 999);
+const pktOffset = 5 * 60 * 60 * 1000;
+const pktNow = new Date(now.getTime() + pktOffset);
+const pktMidnight = new Date(pktNow);
+pktMidnight.setUTCHours(0, 0, 0, 0);
+const startOfToday = new Date(pktMidnight.getTime() - pktOffset);
+const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000 - 1);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
