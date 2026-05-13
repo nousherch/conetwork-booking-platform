@@ -35,11 +35,10 @@ const checkConflict = async (roomId, startTime, endTime, excludeBookingId = null
     roomId,
     status: 'CONFIRMED',
     AND: [
-      { startTime: { lt: new Date(endTime) } },
-      { endTime: { gt: new Date(startTime) } },
+      { startTime: { lt: pktToUtc(endTime) } },
+      { endTime: { gt: pktToUtc(startTime) } },
     ],
   };
-
   if (excludeBookingId) where.id = { not: excludeBookingId };
 
   const conflict = await prisma.booking.findFirst({ where });
