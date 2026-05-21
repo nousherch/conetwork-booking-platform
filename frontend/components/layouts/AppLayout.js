@@ -117,7 +117,7 @@ export default function AppLayout({ children, title }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
-  <Link href="https://meeting.conetwork.pk/dashboard"
+  <Link href="https://meeting.conetwork.pk/dashboard">
  className="flex items-center gap-3 hover:opacity-80 transition-opacity">
     <img
       src="/logo.png"
@@ -215,7 +215,7 @@ export default function AppLayout({ children, title }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link href="https://meeting.conetwork.pk/dashboard">
+          <Link href="https://meeting.conetwork.pk/dashboard">>
   <img src="/logo.png" alt="CoNetwork" className="h-7 w-auto object-contain" />
 </Link>
         </div>
