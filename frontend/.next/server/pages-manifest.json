@@ -1,11 +1,17 @@
 {
-  "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/login": "pages/login.js",
-  "/admin": "pages/admin.js",
   "/admin/calendar": "pages/admin/calendar.js",
-  "/admin/bookings": "pages/admin/bookings.js",
+  "/admin/clients": "pages/admin/clients.js",
+  "/admin/analytics": "pages/admin/analytics.js",
+  "/admin": "pages/admin.js",
   "/admin/rooms": "pages/admin/rooms.js",
-  "/admin/analytics": "pages/admin/analytics.js"
+  "/dashboard": "pages/dashboard.js",
+  "/dashboard/bookings": "pages/dashboard/bookings.js",
+  "/admin/bookings": "pages/admin/bookings.js",
+  "/login": "pages/login.js",
+  "/dashboard/book": "pages/dashboard/book.js",
+  "/": "pages/index.js",
+  "/_app": "pages/_app.js",
+  "/reception": "pages/reception.js",
+  "/_document": "pages/_document.js"
 }

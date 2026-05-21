@@ -215,7 +215,7 @@ export default function AppLayout({ children, title }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link href="https://meeting.conetwork.pk/dashboard"
+          <Link href="https://meeting.conetwork.pk/dashboard">
   <img src="/logo.png" alt="CoNetwork" className="h-7 w-auto object-contain" />
 </Link>
         </div>
