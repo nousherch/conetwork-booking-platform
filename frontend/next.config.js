@@ -6,4 +6,4 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: 'https://conetwork-booking-platform.onrender.com',
   },
 }
-module.exports = nextConfig
+module.exports = nextConfig 
