@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { format, isFuture } from 'date-fns';
+import { format, isFuture, isPast } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 import AppLayout from '../../components/layouts/AppLayout';
 import { bookingsApi } from '../../lib/api';
@@ -20,7 +20,7 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
   const [pagination, setPagination] = useState({});
   const [fetching, setFetching] = useState(true);
-  const [tab, setTab] = useState('upcoming'); // upcoming | past
+  const [tab, setTab] = useState('upcoming');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -33,14 +33,12 @@ export default function MyBookings() {
     try {
       const now = new Date().toISOString();
       const params = { page, limit: 15 };
-
       if (tab === 'upcoming') {
         params.startDate = now;
         params.status = 'CONFIRMED';
       } else {
         params.endDate = now;
       }
-
       const { data } = await bookingsApi.getAll(params);
       setBookings(data.bookings);
       setPagination(data.pagination);
@@ -66,7 +64,27 @@ export default function MyBookings() {
     }
   };
 
+  const handleEndEarly = async (id) => {
+    if (!confirm('End this booking now? This will free up the room immediately.')) return;
+    try {
+      await bookingsApi.update(id, { endTime: new Date().toISOString() });
+      toast.success('Booking ended — room is now free');
+      fetchBookings();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to end booking');
+    }
+  };
+
   if (loading || !user) return null;
+
+  const isActive = (b) => {
+    const now = new Date();
+    return b.status === 'CONFIRMED' &&
+      new Date(b.startTime) <= now &&
+      new Date(b.endTime) > now;
+  };
+
+  const canCancel = (b) => b.status === 'CONFIRMED';
 
   return (
     <>
@@ -117,35 +135,51 @@ export default function MyBookings() {
                     {tab === 'upcoming' ? 'No upcoming bookings' : 'No past bookings'}
                   </p>
                   {tab === 'upcoming' && (
-                    <Link href="/dashboard/book" className="btn-primary text-xs">
-                      Book a room
-                    </Link>
+                    <Link href="/dashboard/book" className="btn-primary text-xs">Book a room</Link>
                   )}
                 </div>
               ) : (
                 bookings.map((b) => {
                   const s = STATUS_LABELS[b.status] || { label: b.status, cls: 'badge-gray' };
-                  const canCancel = b.status === 'CONFIRMED' && isFuture(new Date(b.startTime));
+                  const active = isActive(b);
                   return (
-                    <div key={b.id} className="p-4">
+                    <div key={b.id} className={`p-4 ${active ? 'bg-emerald-50/50' : ''}`}>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: b.room.color }} />
                           <p className="font-semibold text-slate-800 text-sm">{b.title}</p>
                         </div>
-                        <span className={s.cls}>{s.label}</span>
+                        <div className="flex items-center gap-2">
+                          {active && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white">
+                              <span className="w-1.5 h-1.5 bg-white rounded-full inline-block" />
+                              Live
+                            </span>
+                          )}
+                          <span className={s.cls}>{s.label}</span>
+                        </div>
                       </div>
                       <p className="text-xs text-slate-500 ml-4">
                         {format(new Date(b.startTime), 'EEE, MMM d · h:mm a')} – {format(new Date(b.endTime), 'h:mm a')}
                       </p>
-                      <p className="text-xs text-slate-400 ml-4 mb-2">{b.room.name}</p>
-                      {canCancel && (
-                        <button
-                          onClick={() => handleCancel(b.id)}
-                          className="ml-4 text-xs text-red-500 font-medium hover:text-red-700"
-                        >
-                          Cancel booking
-                        </button>
+                      <p className="text-xs text-slate-400 ml-4 mb-3">{b.room.name}</p>
+                      {canCancel(b) && (
+                        <div className="ml-4 flex gap-3">
+                          {active && (
+                            <button
+                              onClick={() => handleEndEarly(b.id)}
+                              className="text-xs text-amber-600 font-semibold hover:text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200"
+                            >
+                              🏁 End Early
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleCancel(b.id)}
+                            className="text-xs text-red-500 font-medium hover:text-red-700"
+                          >
+                            Cancel booking
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
@@ -195,14 +229,20 @@ export default function MyBookings() {
                       const mins = duration % 60;
                       const durationLabel = hrs > 0 ? `${hrs}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`;
                       const s = STATUS_LABELS[b.status] || { label: b.status, cls: 'badge-gray' };
-                      const canCancel = b.status === 'CONFIRMED' && isFuture(new Date(b.startTime));
+                      const active = isActive(b);
 
                       return (
-                        <tr key={b.id}>
+                        <tr key={b.id} className={active ? 'bg-emerald-50/40' : ''}>
                           <td>
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: b.room.color }} />
                               <span className="font-medium text-slate-800">{b.title}</span>
+                              {active && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white">
+                                  <span className="w-1.5 h-1.5 bg-white rounded-full inline-block" />
+                                  Live
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="text-slate-500 text-sm">{b.room.name}</td>
@@ -217,14 +257,24 @@ export default function MyBookings() {
                           <td className="text-slate-500 text-sm">{durationLabel}</td>
                           <td><span className={s.cls}>{s.label}</span></td>
                           <td>
-                            {canCancel && (
-                              <button
-                                onClick={() => handleCancel(b.id)}
-                                className="btn-ghost text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                Cancel
-                              </button>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {active && canCancel(b) && (
+                                <button
+                                  onClick={() => handleEndEarly(b.id)}
+                                  className="btn-ghost text-xs text-amber-600 hover:text-amber-800 hover:bg-amber-50 font-semibold"
+                                >
+                                  🏁 End Early
+                                </button>
+                              )}
+                              {canCancel(b) && (
+                                <button
+                                  onClick={() => handleCancel(b.id)}
+                                  className="btn-ghost text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

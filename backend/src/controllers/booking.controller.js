@@ -3,15 +3,16 @@ const { sendBookingConfirmation, sendBookingCancellation } = require('../service
 
 const prisma = new PrismaClient();
 
-// Validate booking time rules (30-min increments, min 30 mins)
 // Convert PKT time string to UTC Date
 const pktToUtc = (timeStr) => {
   const date = new Date(timeStr);
   return new Date(date.getTime() - 5 * 60 * 60 * 1000);
 };
+
+// Validate booking time rules (30-min increments, min 30 mins)
 const validateBookingTime = (startTime, endTime) => {
   const start = pktToUtc(startTime);
-const end = pktToUtc(endTime);
+  const end = pktToUtc(endTime);
   const now = new Date();
 
   if (start < now) return 'Booking start time cannot be in the past';
@@ -40,7 +41,6 @@ const checkConflict = async (roomId, startTime, endTime, excludeBookingId = null
     ],
   };
   if (excludeBookingId) where.id = { not: excludeBookingId };
-
   const conflict = await prisma.booking.findFirst({ where });
   return conflict;
 };
@@ -48,10 +48,8 @@ const checkConflict = async (roomId, startTime, endTime, excludeBookingId = null
 const getAllBookings = async (req, res) => {
   try {
     const { clientId, roomId, status, startDate, endDate, search, page = 1, limit = 50 } = req.query;
-
     const where = {};
 
-    // Clients can only see their own bookings
     if (req.user.role === 'CLIENT') {
       where.clientId = req.user.client?.id;
     } else {
@@ -115,7 +113,6 @@ const getBookingById = async (req, res) => {
 
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-    // Clients can only view their own bookings
     if (req.user.role === 'CLIENT' && booking.clientId !== req.user.client?.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -134,16 +131,13 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ error: 'Room, title, start time, and end time are required' });
     }
 
-    // Validate time rules
     const timeError = validateBookingTime(startTime, endTime);
     if (timeError) return res.status(400).json({ error: timeError });
 
-    // Check room exists and is active
     const room = await prisma.room.findUnique({ where: { id: roomId } });
     if (!room) return res.status(404).json({ error: 'Room not found' });
     if (room.status === 'INACTIVE') return res.status(400).json({ error: 'Room is not available' });
 
-    // Determine client ID
     let clientId;
     if (req.user.role === 'ADMIN') {
       clientId = req.body.clientId;
@@ -153,7 +147,6 @@ const createBooking = async (req, res) => {
       if (!clientId) return res.status(400).json({ error: 'Client profile not found' });
     }
 
-    // Check for conflicts
     const conflict = await checkConflict(roomId, startTime, endTime);
     if (conflict) {
       return res.status(409).json({
@@ -172,7 +165,7 @@ const createBooking = async (req, res) => {
         roomId,
         title,
         startTime: pktToUtc(startTime),
-endTime: pktToUtc(endTime),
+        endTime: pktToUtc(endTime),
         notes: notes || null,
         status: 'CONFIRMED',
       },
@@ -182,7 +175,6 @@ endTime: pktToUtc(endTime),
       },
     });
 
-    // Send confirmation email
     try {
       await sendBookingConfirmation(booking);
     } catch (emailErr) {
@@ -216,8 +208,10 @@ const updateBooking = async (req, res) => {
       return res.status(400).json({ error: 'Cannot edit a cancelled booking' });
     }
 
-    // Validate new times if provided
-    if (startTime && endTime) {
+    // Allow end early — skip validation if only endTime is being set to now or past
+    const isEndEarly = endTime && !startTime && new Date(endTime) <= new Date();
+
+    if (startTime && endTime && !isEndEarly) {
       const timeError = validateBookingTime(startTime, endTime);
       if (timeError) return res.status(400).json({ error: timeError });
 
@@ -232,7 +226,8 @@ const updateBooking = async (req, res) => {
       data: {
         ...(title && { title }),
         ...(startTime && { startTime: new Date(startTime) }),
-        ...(endTime && { endTime: new Date(endTime) }),
+        // For end early use raw new Date, for normal update use pktToUtc
+        ...(endTime && { endTime: isEndEarly ? new Date(endTime) : new Date(endTime) }),
         ...(notes !== undefined && { notes }),
         ...(status && req.user.role === 'ADMIN' && { status }),
       },
@@ -280,7 +275,6 @@ const cancelBooking = async (req, res) => {
       },
     });
 
-    // Send cancellation email
     try {
       await sendBookingCancellation(updated);
     } catch (emailErr) {
@@ -300,18 +294,14 @@ const getCalendarBookings = async (req, res) => {
 
     if (!start || !end) return res.status(400).json({ error: 'Start and end dates required' });
 
-   const where = {
-  status: 'CONFIRMED',
-  startTime: { gte: new Date(start) },
-  endTime: { lte: new Date(end) },
-  AND: [
-    { startTime: { gte: new Date(start) } },
-    { startTime: { lt: new Date(end) } },
-  ],
-};
+    const where = {
+      status: 'CONFIRMED',
+      AND: [
+        { startTime: { gte: new Date(start) } },
+        { startTime: { lt: new Date(end) } },
+      ],
+    };
 
-    // IMPORTANT: fetch ALL bookings for the room (not just this client's)
-    // so other clients' slots show as red/blocked on the calendar
     if (roomId) where.roomId = roomId;
 
     const bookings = await prisma.booking.findMany({
@@ -325,7 +315,6 @@ const getCalendarBookings = async (req, res) => {
       orderBy: { startTime: 'asc' },
     });
 
-    // Format for FullCalendar — red for others, room color for own booking
     const currentClientId = req.user.client?.id;
 
     const events = bookings.map((b) => {
@@ -362,7 +351,6 @@ const getCalendarBookings = async (req, res) => {
 
 const getTodaysBookings = async (req, res) => {
   try {
-    // Use PKT (UTC+5) midnight
     const now = new Date();
     const pktOffset = 5 * 60 * 60 * 1000;
     const pktNow = new Date(now.getTime() + pktOffset);
